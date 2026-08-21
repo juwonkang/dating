@@ -6,6 +6,10 @@
 <title>투슬리스의 데이트 신청 🐉</title>
 <meta property="og:title" content="투슬리스가 데이트 신청했어요 🐉">
 <meta property="og:description" content="이번주 토요일, 같이 뭐 하고 놀지 골라줘!">
+<meta property="og:type" content="website">
+<meta property="og:image" content="og-image.jpg">
+<meta property="og:image:width" content="810">
+<meta property="og:image:height" content="1080">
 <style>
   :root{
     --bg-1:#0b1130;
@@ -120,6 +124,18 @@
   .popup-card .choice{color:var(--gold);font-weight:700;margin:0 0 20px;font-size:.95rem;}
   .popup-actions{display:flex;flex-direction:column;gap:10px;align-items:center;}
 
+  .pin-boxes{display:flex;gap:12px;margin-top:22px;}
+  .pin-boxes.shake{animation:shake .5s ease;}
+  .pin-box{
+    width:52px;height:62px;border-radius:16px;text-align:center;
+    font-size:1.6rem;font-weight:800;color:var(--text);
+    background:var(--card-strong);border:1.5px solid rgba(255,255,255,.15);
+    outline:none;transition:border-color .2s ease, transform .15s ease;
+  }
+  .pin-box:focus{border-color:var(--gold);transform:translateY(-2px);}
+  .pin-error{margin-top:16px;font-size:.85rem;color:#ff9e9e;opacity:0;transition:opacity .25s ease;height:1.2em;}
+  .pin-error.show{opacity:1;}
+
   h2.title{font-size:clamp(1.15rem,5vw,1.4rem);text-align:center;margin:6px 0 4px;}
   .subtitle{color:var(--text-dim);font-size:.85rem;text-align:center;margin:0 0 20px;}
 
@@ -206,7 +222,22 @@
 
 <div id="app">
 
-  <section class="page active" id="page-intro">
+  <section class="page active" id="page-lock">
+    <div class="page-inner" style="justify-content:center;">
+      <div class="dragon-wrap dragon-toothless" id="dragon-lock" style="width:min(40vw,160px);"></div>
+      <div class="bubble speech"><h1>잠깐, 아무나 못 들어와요 🔒</h1></div>
+      <p class="subtitle" style="margin-top:14px;">남자친구의 생일을 쓰시오 (0000)</p>
+      <div class="pin-boxes" id="pin-boxes">
+        <input type="tel" inputmode="numeric" maxlength="1" class="pin-box" aria-label="생일 첫째 자리">
+        <input type="tel" inputmode="numeric" maxlength="1" class="pin-box" aria-label="생일 둘째 자리">
+        <input type="tel" inputmode="numeric" maxlength="1" class="pin-box" aria-label="생일 셋째 자리">
+        <input type="tel" inputmode="numeric" maxlength="1" class="pin-box" aria-label="생일 넷째 자리">
+      </div>
+      <p class="pin-error" id="pin-error">땡! 다시 생각해봐요 💭</p>
+    </div>
+  </section>
+
+  <section class="page" id="page-intro">
     <div class="page-inner" style="justify-content:center;">
       <div class="bubble speech"><h1>나랑 데이트 할래요?</h1></div>
       <div class="dragon-wrap dragon-toothless" id="dragon-intro"></div>
@@ -236,7 +267,7 @@
         <span class="speech" id="thinking-label" style="margin-left:6px;font-size:.9rem;color:var(--text-dim);"></span>
       </div>
       <div class="result-box" id="result-box">
-        <p class="speech" style="font-size:1.1rem;margin:0;">음... 오늘은</p>
+        <p class="speech" style="font-size:1.1rem;margin:0;">음... 내일은</p>
         <p class="food-pick" id="food-pick-text"></p>
         <button class="btn btn-primary" id="btn-food-next">다음으로</button>
         <button class="btn-text" id="btn-food-reroll">다른 추천 볼래요 🔁</button>
@@ -332,6 +363,7 @@
       + '<ellipse cx="100" cy="120" rx="58" ry="47" fill="url(#'+uid+')"/>'
       + '<ellipse cx="100" cy="136" rx="32" ry="23" fill="'+belly+'"/>'
       + '<ellipse cx="80" cy="98" rx="20" ry="12" fill="rgba(255,255,255,.14)"/>'
+      + (isFury ? '' : '<text x="100" y="141" text-anchor="middle" font-size="15" font-weight="800" fill="#ffe9b8" font-family="sans-serif" letter-spacing="1">주원</text>')
       + '<ellipse cx="66" cy="162" rx="16" ry="12" fill="url(#'+uid+')"/>'
       + '<ellipse cx="134" cy="162" rx="16" ry="12" fill="url(#'+uid+')"/>'
       + '<ellipse cx="100" cy="68" rx="44" ry="38" fill="url(#'+uid+')"/>'
@@ -356,6 +388,48 @@
     document.querySelectorAll('.dragon-fury').forEach(function(el){ el.innerHTML = dragonSVG('fury'); });
   }
   fillDragons();
+
+  /* ---------- 입장 PIN (남자친구 생일) ---------- */
+  var pageLock = document.getElementById('page-lock');
+  var pinBoxesWrap = document.getElementById('pin-boxes');
+  var pinBoxes = Array.prototype.slice.call(document.querySelectorAll('.pin-box'));
+  var pinError = document.getElementById('pin-error');
+  var CORRECT_PIN = '0613';
+
+  function getPinValue(){ return pinBoxes.map(function(b){ return b.value; }).join(''); }
+
+  function tryUnlock(){
+    var val = getPinValue();
+    if(val.length < 4) return;
+    if(val === CORRECT_PIN){
+      pinError.classList.remove('show');
+      pageLock.style.transition = 'opacity .4s ease';
+      pageLock.style.opacity = '0';
+      setTimeout(function(){
+        pageLock.classList.remove('active');
+        document.getElementById('page-intro').classList.add('active');
+      }, 380);
+    } else {
+      pinError.classList.add('show');
+      pinBoxesWrap.classList.add('shake');
+      setTimeout(function(){
+        pinBoxesWrap.classList.remove('shake');
+        pinBoxes.forEach(function(b){ b.value=''; });
+        pinBoxes[0].focus();
+      }, 480);
+    }
+  }
+
+  pinBoxes.forEach(function(box, i){
+    box.addEventListener('input', function(){
+      box.value = box.value.replace(/[^0-9]/g,'').slice(0,1);
+      if(box.value && i < pinBoxes.length-1){ pinBoxes[i+1].focus(); }
+      if(pinBoxes.every(function(b){ return b.value.length===1; })) tryUnlock();
+    });
+    box.addEventListener('keydown', function(e){
+      if(e.key==='Backspace' && !box.value && i>0){ pinBoxes[i-1].focus(); }
+    });
+  });
 
   /* ---------- 별 배경 ---------- */
   var starsEl = document.getElementById('stars');
